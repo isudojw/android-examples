@@ -26,8 +26,8 @@ package cc.jerrywang.androidexamples.account.metadata;
 
 public interface UserMetadata {
 
-    String getUid();
+    String getUid(String defValue);
 
-    String getDisplayName();
+    String getDisplayName(String defValue);
 
 }

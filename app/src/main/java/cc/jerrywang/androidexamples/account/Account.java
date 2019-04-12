@@ -24,15 +24,18 @@
 
 package cc.jerrywang.androidexamples.account;
 
-public interface Account<IntentT, TaskT> {
+import cc.jerrywang.androidexamples.account.bundle.AccountBundle;
+import cc.jerrywang.androidexamples.account.metadata.UserMetadata;
+
+public interface Account<TaskT> extends UserMetadata {
 
     boolean isSignedIn();
 
-    void signUp(IntentT intentData, TaskT accountTask);
+    void signUp(AccountBundle accountBundle, TaskT task);
 
-    void signIn(IntentT intentData, TaskT accountTask);
+    void signIn(AccountBundle accountBundle, TaskT task);
 
-    void signOut(TaskT accountTask);
+    void signOut(TaskT task);
 
     boolean isSuccessful(int resultCode);
 

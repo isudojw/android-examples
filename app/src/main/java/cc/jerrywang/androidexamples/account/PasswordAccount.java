@@ -35,22 +35,19 @@ import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
+import cc.jerrywang.androidexamples.account.bundle.AccountBundle;
 import cc.jerrywang.androidexamples.account.metadata.UserMetadata;
 import cc.jerrywang.androidexamples.account.task.AuthTask;
 
-public class PasswordAccount implements Account<Intent, AuthTask>, UserMetadata {
+public class PasswordAccount implements Account<AuthTask>{
 
     private enum RESULT {SUCCESSES, FAILED}
 
     private Context context;
-    private String email;
-    private String password;
     private FirebaseAuth firebaseAuth;
 
-    public PasswordAccount(Context context, String email, String password) {
+    public PasswordAccount(Context context) {
         this.context = context;
-        this.email = email;
-        this.password = password;
         this.firebaseAuth = FirebaseAuth.getInstance();
     }
 
@@ -64,8 +61,8 @@ public class PasswordAccount implements Account<Intent, AuthTask>, UserMetadata 
     }
 
     @Override
-    public void signIn(Intent intentData, final AuthTask authTask) {
-        getAuth().signInWithEmailAndPassword(getEmail(), getPassword())
+    public void signIn(AccountBundle bundle, final AuthTask authTask) {
+        getAuth().signInWithEmailAndPassword(bundle.getEmail(), bundle.getPassword())
                 .addOnCompleteListener(getActivity(), new OnCompleteListener<AuthResult>() {
                     @Override
                     public void onComplete(@NonNull Task<AuthResult> task) {
@@ -78,32 +75,19 @@ public class PasswordAccount implements Account<Intent, AuthTask>, UserMetadata 
                 });
     }
 
-    private String getEmail() {
-        return this.email;
-    }
-
-    private String getPassword() {
-        return this.password;
-    }
-
     private Activity getActivity() {
         return (Activity) this.context;
     }
 
     @Override
-    public void signUp(Intent intentData, AuthTask authTask) {
-        creatAccount(authTask);
-    }
-
-    private void creatAccount(final AuthTask authTask) {
-        getAuth().createUserWithEmailAndPassword(getEmail(), getPassword())
+    public void signUp(AccountBundle bundle, final AuthTask authTask) {
+        getAuth().createUserWithEmailAndPassword(bundle.getEmail(), bundle.getPassword())
                 .addOnCompleteListener(getActivity(), new OnCompleteListener<AuthResult>() {
                     @Override
                     public void onComplete(@NonNull Task<AuthResult> task) {
                         if (task.isSuccessful()) {
                             authTask.onComplete(RESULT.SUCCESSES.hashCode());
                         } else {
-                            // TODO : Check if password failed or email not find (new account).
                             authTask.onComplete(RESULT.FAILED.hashCode());
                         }
                     }
@@ -127,8 +111,8 @@ public class PasswordAccount implements Account<Intent, AuthTask>, UserMetadata 
     }
 
     @Override
-    public String getUid() {
-        return getUser().getUid();
+    public String getUid(String defValue) {
+        return isSignedIn() ? getUser().getUid() : defValue;
     }
 
     private FirebaseUser getUser() {
@@ -136,7 +120,7 @@ public class PasswordAccount implements Account<Intent, AuthTask>, UserMetadata 
     }
 
     @Override
-    public String getDisplayName() {
-        return getUser().getDisplayName();
+    public String getDisplayName(String defValue) {
+        return isSignedIn() ? getUser().getDisplayName() : defValue;
     }
 }

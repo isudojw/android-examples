@@ -43,10 +43,11 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
 
 import cc.jerrywang.androidexamples.R;
+import cc.jerrywang.androidexamples.account.bundle.AccountBundle;
 import cc.jerrywang.androidexamples.account.metadata.UserMetadata;
 import cc.jerrywang.androidexamples.account.task.AuthTask;
 
-public class GoogleAccount implements Account<Intent, AuthTask>, UserMetadata {
+public class GoogleAccount implements Account<AuthTask>{
 
     private static final int GOOGLE_SIGN_IN = 9001;
     private enum RESULT {SUCCESSES, FAILED}
@@ -101,8 +102,8 @@ public class GoogleAccount implements Account<Intent, AuthTask>, UserMetadata {
     }
 
     @Override
-    public void signUp(Intent intentData, AuthTask authTask) {
-        return;
+    public void signUp(AccountBundle accountBundle, AuthTask accountTask) {
+        // TODO : Pop up Google create account activity.
     }
 
     private FirebaseUser getUser() {
@@ -110,18 +111,18 @@ public class GoogleAccount implements Account<Intent, AuthTask>, UserMetadata {
     }
 
     @Override
-    public String getUid() {
-        return getUser().getUid();
+    public String getUid(String defValue) {
+        return isSignedIn() ? getUser().getUid() : defValue;
     }
 
     @Override
-    public String getDisplayName() {
-        return getUser().getDisplayName();
+    public String getDisplayName(String defValue) {
+        return isSignedIn() ? getUser().getDisplayName() : defValue;
     }
 
     @Override
-    public void signIn(Intent intentData, AuthTask authTask) {
-        GoogleSignInAccount gsc = getGoogleSignInAccount(intentData);
+    public void signIn(AccountBundle bundle, AuthTask authTask) {
+        GoogleSignInAccount gsc = getGoogleSignInAccount((Intent) bundle.getIntent());
         if (gsc == null) {
             authTask.onComplete(RESULT.FAILED.hashCode());
             return;
@@ -139,7 +140,6 @@ public class GoogleAccount implements Account<Intent, AuthTask>, UserMetadata {
     private GoogleSignInAccount setGoogleSignInAccount(Intent data) {
         Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
         try {
-            // Google Sign In was successful, authenticate with Firebase
             return task.getResult(ApiException.class);
         } catch (ApiException e) {
             // Google Sign In failed, update UI appropriately
