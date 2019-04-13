@@ -4,7 +4,6 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
-import android.support.design.widget.VisibilityAwareImageButton;
 import android.view.View;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
@@ -14,13 +13,15 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.ImageButton;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import cc.jerrywang.androidexamples.account.Account;
 import cc.jerrywang.androidexamples.account.GoogleAccount;
-import cc.jerrywang.androidexamples.account.metadata.UserMetadata;
+import cc.jerrywang.androidexamples.account.activity.AccountActivity;
+import cc.jerrywang.androidexamples.account.bundle.AccountBundle;
+import cc.jerrywang.androidexamples.account.task.AuthTask;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
@@ -31,6 +32,7 @@ public class MainActivity extends AppCompatActivity
     private ActionBarDrawerToggle toggle;
     private NavigationView navigationView;
     private Account account;
+    private ProgressBar toolbarProgressBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,19 +40,25 @@ public class MainActivity extends AppCompatActivity
         setContentView(R.layout.activity_main);
 
         initToolbar();
-        initFloatingActionButton();
         initActionBarDrawerToggle();
+        initFloatingActionButton();
         initNavigationView();
-        initAccount();
+        initAccountAtNavigationView();
     }
 
     // ==================================================================================
     //  Toolbar
 
     private void initToolbar() {
+        getToolbar();
+        setToolbarProgressBar();
+    }
+
+    private Toolbar getToolbar() {
         if (isNullorEmpty(toolbar)) {
             setToolbar();
         }
+        return toolbar;
     }
 
     private boolean isNullorEmpty(Object object) {
@@ -62,20 +70,21 @@ public class MainActivity extends AppCompatActivity
         setSupportActionBar(toolbar);
     }
 
-    private Toolbar getToolbar() {
-        if (isNullorEmpty(toolbar)) {
-            initToolbar();
-        }
-        return toolbar;
+    private void setToolbarProgressBar() {
+        toolbarProgressBar = findViewById(R.id.toolbarProgressBar);
+        toolbarProgressBar.setVisibility(View.GONE);
     }
 
     // ==================================================================================
     //  ActionBarDrawerToggle
 
     private void initActionBarDrawerToggle() {
-        if (isNullorEmpty(toolbar)) {
-            setToggle();
-        }
+        setDrawer();
+        setToggle();
+    }
+
+    private void setDrawer() {
+        drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
     }
 
     private void setToggle() {
@@ -92,25 +101,20 @@ public class MainActivity extends AppCompatActivity
         return drawer;
     }
 
-    private void setDrawer() {
-        drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-    }
-
     @Override
     public void onBackPressed() {
+        closeDrawer();
+        super.onBackPressed();
+    }
+
+    private void closeDrawer() {
         if (isDrawerOpen()) {
-            closeDrawer();
-        } else {
-            super.onBackPressed();
+            getDrawer().closeDrawer(GravityCompat.START);
         }
     }
 
     private boolean isDrawerOpen() {
         return getDrawer().isDrawerOpen(GravityCompat.START);
-    }
-
-    private void closeDrawer() {
-        getDrawer().closeDrawer(GravityCompat.START);
     }
 
     // ==================================================================================
@@ -138,23 +142,16 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
             return true;
         }
-
         return super.onOptionsItemSelected(item);
     }
 
@@ -170,7 +167,7 @@ public class MainActivity extends AppCompatActivity
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
         Class activityClass = getActivityClass(item.getItemId());
-        startActivity(activityClass);
+        startActivityEvent(activityClass, true);
         return true;
     }
 
@@ -196,67 +193,129 @@ public class MainActivity extends AppCompatActivity
 
     // ==================================================================================
 
-    private void startActivity(Class activityClass) {
+    private void startActivityEvent(Class activityClass, boolean finishThisActivity) {
         closeDrawer();
         if (!isNullorEmpty(activityClass)) {
-            startNewActivity(activityClass);
-            stopThisActivity();
+            startNewActivity(activityClass, finishThisActivity);
         }
     }
 
-    private void startNewActivity(Class activityClass) {
+    private void startNewActivity(Class activityClass, boolean finishThisActivity) {
         Intent intent = new Intent();
         intent.setClass(MainActivity.this, activityClass);
         startActivity(intent);
-    }
-
-    private void stopThisActivity() {
-        MainActivity.this.finish();
+        if (finishThisActivity) {
+            MainActivity.this.finish();
+        }
     }
 
     // ==================================================================================
-    //  Account
+    //  Account at NavigationView
 
-    private void initAccount() {
-        setAccountViewItem();
-        setAccountAuth();
-        setAccountButton();
-        setAccountText();
+    private void initAccountAtNavigationView() {
+        setAccount();
+        updateAccount();
+        addSignEvent();
     }
 
-    private void setAccountViewItem() {
-        initNavigationView();
-    }
-
-    private void setAccountAuth() {
+    private void setAccount() {
         account = new GoogleAccount(this);
     }
 
-    private void setAccountButton() {
-        LinearLayout accountLayout = (LinearLayout) findViewById(R.id.account_layout);
-        accountLayout.setOnClickListener(new View.OnClickListener() {
+    private void updateAccount() {
+        if (getAccount().isSignedIn()) {
+            updateAccountItems();
+        }
+    }
+
+    private Account getAccount() {
+        if (account == null) {
+            setAccount();
+        }
+        return account;
+    }
+
+    private void updateAccountItems() {
+        TextView textView01 = (TextView) getAccountLayoutItem(R.id.account_text_01);
+        TextView textView02 = (TextView) getAccountLayoutItem(R.id.account_text_02);
+        textView01.setText(getAccount().getUid("userId"));
+        textView02.setText(getAccount().getDisplayName("Jay"));
+    }
+
+    private Object getAccountLayoutItem(int id) {
+        return getNavigationView().getHeaderView(0).findViewById(id);
+    }
+
+    private NavigationView getNavigationView() {
+        return navigationView;
+    }
+
+    private void addSignEvent() {
+        getAccountLayout().setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // startActivity(AccountActivity.class)
+                setSignInClickEvent();
             }
         });
     }
 
-    private void setAccountText() {
-        String topText = getAccountDisplayNameText("top");
-        String downText = "down";
-        this.updateAccountText(topText, downText);
+    private LinearLayout getAccountLayout() {
+        return (LinearLayout) getAccountLayoutItem(R.id.account_layout);
     }
 
-    protected void updateAccountText(String topText, String downText) {
-        TextView textView01 = (TextView) findViewById(R.id.account_text_01);
-        TextView textView02 = (TextView) findViewById(R.id.account_text_02);
-        textView01.setText(topText);
-        textView02.setText(downText);
+    private void setSignInClickEvent() {
+        closeDrawer();
+        if (getAccount().isSignedIn()) {
+            startAccountActivity();
+        } else {
+            startSignInEvent();
+        }
     }
 
-    private String getAccountDisplayNameText(String defValue) {
-        return account.getDisplayName(defValue);
+    private void startAccountActivity() {
+        Class accountActivity = AccountActivity.class;
+        startActivityEvent(accountActivity, false);
+    }
+
+    private void startSignInEvent() {
+        addSignInAnimation();
+        getAccount().startActivityForResult();
+    }
+
+    private void addSignInAnimation() {
+        setProgressAnimation(true);
+    }
+
+    private void setProgressAnimation(boolean show) {
+        getProgressBar().setVisibility(show ? View.VISIBLE : View.GONE);
+    }
+
+    private ProgressBar getProgressBar() {
+        return toolbarProgressBar;
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (getAccount().isSuccessful(requestCode)) {
+            AccountBundle<Intent> bundle = new AccountBundle<>();
+            bundle.putIntent(data);
+            signIn(bundle);
+        }
+    }
+
+    private void signIn(AccountBundle bundle) {
+        getAccount().signIn(bundle, new AuthTask() {
+            @Override
+            public void onComplete(int resultCode) {
+                updateAccount();
+                removeSignInAnimation();
+            }
+        });
+    }
+
+    private void removeSignInAnimation() {
+        setProgressAnimation(false);
     }
 
 }

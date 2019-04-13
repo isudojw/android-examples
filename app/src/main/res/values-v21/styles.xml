@@ -5,4 +5,9 @@
         <item name="windowNoTitle">true</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
     </style>
+
+    <style name="LinearProgress" parent="Theme.AppCompat.Light">
+        <item name="colorAccent">@android:color/holo_orange_dark</item>
+        <item name="android:progressBackgroundTint">@android:color/holo_orange_light</item>
+    </style>
 </resources>
