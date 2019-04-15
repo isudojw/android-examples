@@ -17,14 +17,16 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.mikhaellopez.circularimageview.CircularImageView;
+
 import cc.jerrywang.androidexamples.account.Account;
 import cc.jerrywang.androidexamples.account.GoogleAccount;
 import cc.jerrywang.androidexamples.account.activity.AccountActivity;
 import cc.jerrywang.androidexamples.account.bundle.AccountBundle;
 import cc.jerrywang.androidexamples.account.task.AuthTask;
 
-public class MainActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener {
+public class MainActivity extends AppCompatActivity implements
+        NavigationView.OnNavigationItemSelectedListener {
 
     private Toolbar toolbar;
     private FloatingActionButton fab;
@@ -236,6 +238,15 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void updateAccountItems() {
+        setAccountImage();
+        setAccountText();
+    }
+
+    private void setAccountImage() {
+        CircularImageView accountImage = (CircularImageView) getAccountLayoutItem(R.id.account_image);
+    }
+
+    private void setAccountText() {
         TextView textView01 = (TextView) getAccountLayoutItem(R.id.account_text_01);
         TextView textView02 = (TextView) getAccountLayoutItem(R.id.account_text_02);
         textView01.setText(getAccount().getUid("userId"));
